@@ -3,6 +3,7 @@ import './style.css'
 import { getAllServerSidePlugins, System, devices, Recording, Client } from 'neurosys'
 import { DeviceList, DeviceDiscoveryList, createModal } from './ui'
 import { JSONSchemaForm } from './ui/JSONSchemaForm'
+import { state } from 'lit/decorators.js'
 // import { JSONSchemaForm } from './ui/JSONSchemaForm'
 
 
@@ -33,6 +34,51 @@ const calculate = async () => {
 
 }
 
+const setOutputState = async ({ id, enabled }) => {
+
+  const ref = neurosys.plugins.output[id]
+
+  if (!ref) return
+
+  const { __ctx, __latest } = ref
+
+  const toggledFromPrevState = enabled == !ref.enabled
+
+  const hasNotChanged = !enabled && !toggledFromPrevState
+
+  const callback = enabled ? 'start' : 'stop'
+  if (ref[callback] && !hasNotChanged) await ref[callback].call(__ctx)
+
+  // Ensure the appropriate callback is called before the state is toggled
+  ref.enabled = enabled
+  const protocol = neurosys.get()
+  const { changed } = protocol.update('outputs', id, { enabled })
+  if (changed) await setSaveSettingsState(true) // Enable settings save button because of changes
+
+
+  if (!changed) return
+  if (!enabled) return
+  if (!__latest) return
+
+  ref.set.call(__ctx, __latest) // Re-set the latest features to the output
+}
+
+const setEvaluationState = async ({ id, enabled }) => {
+  
+
+  const ref = neurosys.plugins.evaluation[id]
+  console.log(ref, id, enabled)
+
+  if (!ref) return
+
+  const protocol = neurosys.get()
+  const { changed } = protocol.update('evaluations', id, { enabled })
+  if (changed) await setSaveSettingsState(true) // Enable settings save button because of changes
+
+  ref.enabled = enabled
+  calculate() // Run the protocol immediately after toggling
+}
+
 const SETTINGS_FILE_PREFIX = 'settings'
 
 const { SERVICES, READY } = commoners
@@ -42,17 +88,15 @@ const UPDATE_INVERVAL = 250
 const loadStart = performance.now()
 
 
-READY.then(async ({ menu, settings }) => {
-  menu.onSaveSettings(async () => {
-    const protocol = neurosys.get()
-    const copied = JSON.parse(JSON.stringify(protocol))
-    settings.set(SETTINGS_FILE_PREFIX, copied) // Only a single settings file is stored
-    menu.enableSettings(false)
-  })
-})
-
+const setSaveSettingsState = async (state: boolean) => {
+  const { menu } = await READY
+  menu.set('saveSettings', { ...MENU_STATES.saveSettings.save, enabled: state })
+}
+  
 
 const MENU_STATES = {
+
+  // Custom Menu Items
   device: {
     connect: {
       label: 'Connect Device',
@@ -86,8 +130,8 @@ const MENU_STATES = {
         await client.connect(protocol)
         neurosys.__client = client
 
-        menu.update('recording', { ...MENU_STATES.recording.start, enabled: true })
-        menu.update('device', MENU_STATES.device.disconnect)
+        menu.set('recording', { ...MENU_STATES.recording.start, enabled: true })
+        menu.set('device', MENU_STATES.device.disconnect)
       }
     },
     disconnect: {
@@ -99,8 +143,8 @@ const MENU_STATES = {
         await __client.disconnect()
         delete neurosys.__client
         neurosys.reset()
-        menu.update('recording', MENU_STATES.recording.start)
-        menu.update('device', MENU_STATES.device.connect)
+        menu.set('recording', MENU_STATES.recording.start)
+        menu.set('device', MENU_STATES.device.connect)
       }
     }
   },
@@ -116,7 +160,7 @@ const MENU_STATES = {
         neurosys.__recording = new Recording(neurosys.__client)
         neurosys.__recording.start()
         
-        menu.update('recording', MENU_STATES.recording.stop)
+        menu.set('recording', MENU_STATES.recording.stop)
       }
     },
     stop: {
@@ -130,14 +174,15 @@ const MENU_STATES = {
         __recording.stop()
         delete neurosys.__recording
 
-        menu.update('recording', { ...MENU_STATES.recording.start, enabled: true })
+        menu.set('recording', { ...MENU_STATES.recording.start, enabled: true })
       }
     }
   },
 
-  pluginSettings: {
-    save: {
-      label: 'Edit Plugin Settings',
+  settings: {
+    edit: {
+
+      label: 'Edit Settings',
 
       async onClick() {
 
@@ -228,24 +273,14 @@ const MENU_STATES = {
           form.addEventListener("change", async (ev) => {
             const { detail: valid } = ev
             if (valid) {
-
               const saveable = updateProtocolsWithNewFormData(form.data)
-
-              if (saveable) {
-                const { menu } = await READY
-                menu.enableSettings(true)
-              }
+              if (saveable) await setSaveSettingsState(true)
             }
           })
 
           if (form.submitButton) form.addEventListener("submit", async () => {
             const saveable = updateProtocolsWithNewFormData(form.data)
-
-            if (saveable) {
-              const { menu } = await READY
-              menu.enableSettings(true)
-            }
-            
+            if (saveable)await setSaveSettingsState(true)
             modal.close()
           })
 
@@ -275,23 +310,63 @@ const MENU_STATES = {
 
       }
     }
+  },
+
+
+  saveSettings: {
+    save: {
+      label: "Save Changes",
+      async onClick() {
+        const { settings } = await READY
+        const protocol = neurosys.get()
+        const copied = JSON.parse(JSON.stringify(protocol))
+        settings.set(SETTINGS_FILE_PREFIX, copied) // Only a single settings file is stored
+        setSaveSettingsState(false)
+      }
+    }
+  },
+
+  outputs: {
+
+    // Applied to all items
+    type: 'checkbox',
+    onClick: setOutputState,
+
+    // Specific items
+    items: []
+  },
+
+  evaluations: {
+    type: 'radio',
+    onClick: setEvaluationState,
+    items: []
   }
+
 }
 
+const loadProtocolSettings = async (
+  protocol: any, 
+  states: any
+) => {
 
-const registerInMenu = async (collectedPlugins: Record<string, any>) => {
+  const { output, evaluation } = neurosys.plugins
 
-  const { menu: { registerOutput, registerEvaluation } } = await commoners.READY // Get registration functions
-  const { output = {}, evaluation = {} } = collectedPlugins
-  for (const identifier in output) {
-    const { label, enabled } = output[identifier]
-    registerOutput(identifier, { label, enabled })
+  for (const key in output) {
+    const plugin = output[key]
+    const { enabled } = protocol.outputs[key] ?? {}
+    const item = { id: key, label: plugin.label, checked: enabled }
+    states.outputs.items.push(item)
+    await setOutputState(item) // Set the initial state
   }
 
-  for (const identifier in evaluation) {
-    const { label, enabled } = evaluation[identifier]
-    registerEvaluation(identifier, { label, enabled })
+  for (const key in evaluation) {
+    const plugin = evaluation[key]
+    const { enabled } = protocol.evaluations[key] ?? {}
+    const item = { id: key, label: plugin.label, checked: enabled }
+    states.evaluations.items.push(item)
+    await setEvaluationState(item) // Set the initial state
   }
+
 }
 
 READY.then(async (PLUGINS) => {
@@ -300,9 +375,7 @@ READY.then(async (PLUGINS) => {
 
   console.log(`Commoners loaded in ${performance.now() - loadStart}ms`)
 
-  const collected = neurosys.register(PLUGINS)
-  await registerInMenu(collected)
-
+  neurosys.register(PLUGINS)
   console.log(`Main plugins loaded in ${performance.now() - loadStart}ms`)
 
   // Register all service plugins
@@ -311,73 +384,38 @@ READY.then(async (PLUGINS) => {
   const servicePlugins = await getAllServerSidePlugins(urlsByService)
   for (const serviceName in servicePlugins) {
     const plugins = servicePlugins[serviceName]
-    const collected = neurosys.register(plugins)
-    await registerInMenu(collected)
+    neurosys.register(plugins)
   }
 
   console.log(`Service plugins loaded in ${performance.now() - loadStart}ms`)
 
   const currentSettings = settings.get(SETTINGS_FILE_PREFIX) // Load settings from the file
-  await neurosys.load(currentSettings) // Load settings into the system
-  menu.loadSettings(currentSettings) // Update menu with the current settings
+  const protocol = await neurosys.load(currentSettings) // Load settings into the system
 
-  // Start calculating
+  // ------------------- Load Protocol Settings into Menu States -------------------
+  await loadProtocolSettings(protocol, MENU_STATES)
+
+  for (const [ key, states ] of Object.entries(MENU_STATES)) {
+    const { items, ...rest } = states
+
+    // Add items to the submenu
+    if (items) items.forEach((item) => menu.setItem(key, { ...rest, ...item })) // Apply the rest as defaults
+
+    // Add the first state of each menu option
+    else menu.set(key, Object.values(states)[0])
+  }
+
+  // --------------------- Run Protocol ---------------------
   setInterval(calculate, UPDATE_INVERVAL)
 
-  for (const [ key, states ] of Object.entries(MENU_STATES))menu.add(key, Object.values(states)[0]) // Add the first state of each menu option
 
 })
 
 // -------------------- Electron Menu Callbacks --------------------
 READY.then(async (PLUGINS) => {
-
-  const { menu, bluetooth, serial } = PLUGINS
-
-
+  const { bluetooth, serial } = PLUGINS
   if (bluetooth) devices.enableBluetooth(bluetooth)
   if (serial) devices.enableSerial(serial)
-
-  menu.onEvaluationToggle(async (key, enabled) => {
-
-    const plugin = neurosys.plugins.evaluation[key]
-    plugin.enabled = enabled
-
-    const protocol = neurosys.get()
-    const { changed } = protocol.update('evaluations', key, { enabled })
-    if (changed) menu.enableSettings(true) // Enable settings save button because of changes
-
-    calculate() // Run the protocol immediately after toggling
-  })
-
-  menu.onOutputToggle(async (key, enabled) => {
-
-    const { menu } = await READY
-
-    const ref = neurosys.plugins.output[key]
-
-    if (!ref) return
-
-    const { __ctx, __latest } = ref
-
-    const toggledFromPrevState = enabled == !ref.enabled
-
-    const hasNotChanged = !enabled && !toggledFromPrevState
-
-    const callback = enabled ? 'start' : 'stop'
-    if (ref[callback] && !hasNotChanged) await ref[callback].call(__ctx)
-
-    // Ensure the appropriate callback is called before the state is toggled
-    ref.enabled = enabled
-    const protocol = neurosys.get()
-    const { changed } = protocol.update('outputs', key, { enabled })
-    if (changed) menu.enableSettings(true) // Enable settings save button because of changes
-
-    if (!changed) return
-    if (!enabled) return
-    if (!__latest) return
-
-    ref.set.call(__ctx, __latest) // Re-set the latest features to the output
-  })
 })
 
 devices.setDeviceDiscoveryHandler(async (onSelect) => {

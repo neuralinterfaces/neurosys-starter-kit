@@ -41,7 +41,21 @@ const config = {
         // Control the application through a system tray
         menu: system.menu({
             name: shorthandName,
-            icons: { icon: "./assets/iconTemplate.png", icon2x: "./assets/iconTemplate@2x.png" }
+            icons: { icon: "./assets/iconTemplate.png", icon2x: "./assets/iconTemplate@2x.png" },
+            template: [
+                { id: "device", label: "Connect Device" },
+                { id: "recording", label: "Start Recording", enabled: false },
+                
+                { type: 'separator' },
+
+                { id: 'evaluations', label: "Score", submenu: [] },
+                { id:'outputs', label: "Outputs", submenu: [] },
+                { id: "settings",  label: "Open Settings" },
+                { id: "saveSettings",  label: "Save Settings", enabled: false },
+                { type: 'separator' },
+                
+                { label: 'Quit', role: 'quit' }
+            ]
         }),
         
         // Allow for managing and saving the active protocol
