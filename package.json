@@ -1,0 +1,45 @@
+{
+  "name": "neurosys-monorepo",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engine": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garrettmflynn/neurosys.git"
+  },
+  "author": {
+    "name": "Garrett Flynn",
+    "email": "garrettmflynn@gmail.com"
+  },
+  "scripts": {
+    "start": "commoners",
+    "build": "commoners build",
+    "build:sdk": "pnpm -r run build",
+    "storybook": "storybook dev -p 6006",
+    "build:storybook": "storybook build"
+  },
+  "dependencies": {
+    "@jsfe/form": "^0.4.0",
+    "@jsfe/shoelace": "^0.4.0",
+    "@shoelace-style/shoelace": "^2.20.0",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
+    "commoners": "^0.0.60-alpha.2",
+    "lit": "^3.2.1",
+    "neurosys": "^0.0.2"
+  },
+  "devDependencies": {
+    "@chromatic-com/storybook": "^3.2.5",
+    "@electron/rebuild": "^3.7.1",
+    "@storybook/addon-essentials": "^8.6.3",
+    "@storybook/blocks": "^8.6.3",
+    "@storybook/test": "^8.6.3",
+    "@storybook/web-components": "^8.6.3",
+    "@storybook/web-components-vite": "^8.6.3",
+    "storybook": "^8.6.3"
+  },
+  "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"
+}
