@@ -64,15 +64,14 @@ const setOutputState = async ({ id, enabled }) => {
 }
 
 const setEvaluationState = async ({ id, enabled }) => {
-  
 
   const ref = neurosys.plugins.evaluation[id]
-  console.log(ref, id, enabled)
 
   if (!ref) return
 
   const protocol = neurosys.get()
   const { changed } = protocol.update('evaluations', id, { enabled })
+
   if (changed) await setSaveSettingsState(true) // Enable settings save button because of changes
 
   ref.enabled = enabled
@@ -211,7 +210,7 @@ const MENU_STATES = {
               if (Object.keys(info.properties).length === 0) Object.assign(info, { description: 'No settings available' })
 
               const data = allProtocols.reduce((acc, protocol, i) => {
-                const { settings = {} } = protocol.outputs[key] ?? {}
+                const { settings = {} } = protocol.outputs.get(key) ?? {}
                 return { ...acc, [i]: settings }
               }, {})
 
@@ -319,7 +318,7 @@ const MENU_STATES = {
       async onClick() {
         const { settings } = await READY
         const protocol = neurosys.get()
-        const copied = JSON.parse(JSON.stringify(protocol))
+        const copied = protocol.export()
         settings.set(SETTINGS_FILE_PREFIX, copied) // Only a single settings file is stored
         setSaveSettingsState(false)
       }
@@ -351,20 +350,22 @@ const loadProtocolSettings = async (
 
   const { output, evaluation } = neurosys.plugins
 
-  for (const key in output) {
-    const plugin = output[key]
-    const { enabled } = protocol.outputs[key] ?? {}
-    const item = { id: key, label: plugin.label, checked: enabled }
+  for (const id in output) {
+    const plugin = output[id]
+    const settings = protocol.outputs.get(id) ?? {}
+    const { enabled } = settings
+    const item = { id, label: plugin.label, checked: enabled }
     states.outputs.items.push(item)
-    await setOutputState(item) // Set the initial state
+    await setOutputState({ ...settings, id }) // Set the initial state
   }
 
-  for (const key in evaluation) {
-    const plugin = evaluation[key]
-    const { enabled } = protocol.evaluations[key] ?? {}
-    const item = { id: key, label: plugin.label, checked: enabled }
+  for (const id in evaluation) {
+    const plugin = evaluation[id]
+    const settings = protocol.evaluations.get(id) ?? {}
+    const { enabled } = settings
+    const item = { id, label: plugin.label, checked: enabled }
     states.evaluations.items.push(item)
-    await setEvaluationState(item) // Set the initial state
+    await setEvaluationState({ ...settings, id }) // Set the initial state
   }
 
 }
@@ -398,8 +399,9 @@ READY.then(async (PLUGINS) => {
   for (const [ key, states ] of Object.entries(MENU_STATES)) {
     const { items, ...rest } = states
 
-    // Add items to the submenu
-    if (items) items.forEach((item) => menu.setItem(key, { ...rest, ...item })) // Apply the rest as defaults
+    // NOTE: Setting items at once to avoid out-of-date updates
+    if (items) menu.setItems(key, items.map((item) => ({ ...rest, ...item }))) // Apply the rest as defaults
+    // if (items) items.forEach((item) => menu.setItem(key, { ...rest, ...item })) // Apply the rest as defaults
 
     // Add the first state of each menu option
     else menu.set(key, Object.values(states)[0])

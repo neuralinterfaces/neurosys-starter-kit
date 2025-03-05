@@ -36,14 +36,10 @@ const volume = new Output({
     start: () => console.log('Volume plugin started'),
     stop: () => console.log('Volume plugin stopped'),
     async set({ score }) {
-        
         const { minVolume: _min = 0, maxVolume: _max = 100 } = this.settings
         const minVolume = _min / 100
         const maxVolume = _max / 100
         const level = minVolume + (maxVolume - minVolume) * score // Normalize in level
-
-        console.log(level, _min, _max)
-
         return setVolume(level)
     }
 });
