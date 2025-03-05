@@ -1,5 +1,6 @@
 {
-  "name": "neurosys-monorepo",
+  "name": "neurosys-starter-kit",
+  "version": "0.0.1",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -8,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/garrettmflynn/neurosys.git"
+    "url": "git+https://github.com/neuralinterfaces/neurosys-starter-kit.git"
   },
   "author": {
     "name": "Garrett Flynn",
@@ -29,7 +30,7 @@
     "ajv-keywords": "^5.1.0",
     "commoners": "^0.0.60-alpha.2",
     "lit": "^3.2.1",
-    "neurosys": "^0.0.2"
+    "neurosys": "^0.0.3"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^3.2.5",

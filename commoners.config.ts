@@ -14,8 +14,8 @@ const examples = {
     evaluations: {}
 }
 
-// const DEBUG = false
-const DEBUG = true
+const DEBUG = false
+// const DEBUG = true
 
 const shorthandName = 'neurosys'
 
@@ -45,7 +45,7 @@ const config = {
             template: [
                 { id: "device", label: "Connect Device" },
                 { id: "recording", label: "Start Recording", enabled: false },
-                
+
                 { type: 'separator' },
 
                 { id: 'evaluations', label: "Score", submenu: [] },
