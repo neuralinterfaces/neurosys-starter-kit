@@ -437,7 +437,7 @@ devices.setDeviceDiscoveryHandler(async (onSelect) => {
     }
   })
 
-  const modal = createModal({ header: 'Discovered USB Devices', content: list })
+  const modal = createModal({ header: 'Discovered Devices', content: list })
   document.body.append(modal)
   modal.showModal()
 
