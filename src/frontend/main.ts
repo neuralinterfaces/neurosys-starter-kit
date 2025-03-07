@@ -3,7 +3,6 @@ import './style.css'
 import { getAllServerSidePlugins, System, devices, Recording, Client } from 'neurosys'
 import { DeviceList, DeviceDiscoveryList, createModal } from './ui'
 import { JSONSchemaForm } from './ui/JSONSchemaForm'
-import { state } from 'lit/decorators.js'
 // import { JSONSchemaForm } from './ui/JSONSchemaForm'
 
 
@@ -41,13 +40,6 @@ const setOutputState = async ({ id, enabled }) => {
   if (!ref) return
 
   const { __ctx, __latest } = ref
-
-  const toggledFromPrevState = enabled == !ref.enabled
-
-  const hasNotChanged = !enabled && !toggledFromPrevState
-
-  const callback = enabled ? 'start' : 'stop'
-  if (ref[callback] && !hasNotChanged) await ref[callback].call(__ctx)
 
   // Ensure the appropriate callback is called before the state is toggled
   ref.enabled = enabled
