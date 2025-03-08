@@ -102,14 +102,16 @@ export class Bandpowers extends LitElement {
 
 
     return html`<table>
-        ${Object.entries(this.data).map(([ch, bands]) => html`
+        ${Object.entries(this.data).map(([ ch, bands ]) => html`
             <tr>
                 <th>${ch}</th>
                 <th>
                     <div class="bands">
-                        ${Object.entries(bands).map(([band, value]) => html`<div
+                        ${Object.entries(bands).map(([ band, { value, total } ]) => html`<div
                             class="band ${band}"
-                            style="width: ${value * 100}%"
+                            style="width: ${
+                                ( value / total ) * 100 // Calculate relative percentage
+                            }%"
                         ></div>`)}
                     </div>
                 </th>
