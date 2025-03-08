@@ -9,7 +9,8 @@ import { ScoreComponent } from './Score';
 import { Score } from 'neurosys'
 
 // Score stuff
-const randomValues = Array.from({ length: 10 }, () => Math.random());
+const SCALE = 1000
+const randomValues = Array.from({ length: 10 }, () => SCALE*Math.random());
 const min = Math.min(...randomValues);
 const max = Math.max(...randomValues);
 const other = randomValues.find(v => v !== min && v !== max);
@@ -26,13 +27,40 @@ const meta = {
     const scoreComponent = new ScoreComponent(score);
     
     // Animate the score
-    if (score) setInterval(() => {
-        const { info } = scoreComponent
-        const raw = info.raw
-        info.update(raw + (Math.random() - 0.5) * 0.1) // Random walk of the score
-        scoreComponent.requestUpdate()
-    }, 500)
-    
+    if (score) {
+        
+        let keepAnimating = true
+        const animate = setInterval(() => {
+
+            if (!keepAnimating) return clearInterval(animate)
+
+            const { info } = scoreComponent
+            const raw = info.raw
+
+            // random walk the score proportionally to the range
+            const step = range * 0.01 * Math.random()
+            const newValue = raw + step
+            info.update(newValue)
+            scoreComponent.requestUpdate()
+        }, 100)
+
+        document.onkeydown = (e) => {
+            const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+            if (dir) {
+                keepAnimating = false
+                const { info } = scoreComponent
+                const raw = info.raw
+                const step = range * 0.01 * dir
+                const newValue = raw + step
+                info.update(newValue)
+                scoreComponent.requestUpdate()
+            }
+        }
+
+    }
+
+    else document.onkeydown = null
+        
 
     return new FeaturesCollection([scoreComponent, bandsComponent]);
   }
@@ -46,7 +74,7 @@ type Story = StoryObj<FeaturesCollectionProps>;
 export const ScoreDisplay: Story = {
     args: {
         score: {
-            info: new Score({ raw: other, min, max })
+            info: new Score({ raw: other, min, max, target: false })
         }
     },
 };
@@ -54,8 +82,12 @@ export const ScoreDisplay: Story = {
 export const ScoreDisplayWithTarget: Story = {
     args: {
         score: {
-            info: new Score({ raw: other, min, max }),
-            target: [ min + range * 0.7, min + range * 0.9 ]
+            info: new Score({ 
+                raw: other, 
+                min, 
+                max,
+                target: [ min + range * 0.7, min + range * 0.9 ]
+            })
         }
     },
 };
@@ -79,7 +111,7 @@ export const BandpowersDisplay: Story = {
             AUX: { 
                 delta: { value: 0.1 * total, total },
                 theta: { value: 0.2 * total, total },
-             },
+             }
         }
     },
 };

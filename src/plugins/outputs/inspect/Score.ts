@@ -3,7 +3,6 @@ import { Score } from 'neurosys'
 
 export type ScoreProps = {
     info?: Score
-    target?: [number, number]
 }
 
 export class ScoreComponent extends LitElement {
@@ -75,37 +74,38 @@ export class ScoreComponent extends LitElement {
   `;
 
   declare info: ScoreProps['info'];
-  declare target: ScoreProps['target'];
 
   static properties = {
     info: { type: Object },
-    target: { type: Array }
   } as const;
 
 
-  constructor({ info, target }: ScoreProps = {}) {
+  constructor({ info }: ScoreProps = {}) {
     super();
     this.info = info;
-    this.target = target;
   }
 
   render() {
-    const { info, target } = this;
+    const { info } = this;
 
     if (!info) return ""
 
     const { raw, min, max } = info;
+    const target = info.getTarget();
+    const isInTarget = info.inTarget()
     const normed = info.normalize(raw);
 
-    const inRange = target && normed >= target[0] && normed <= target[1];
-    
+    const range = max - min
+    const normedTarget = target && target.map(t => (t - min) / range) // Normalize target
+    const [ targetMin, targetMax ] = normedTarget
+
     return html`
         <div>
             <div id="visuals">
                 <span class="range">${min.toFixed(2)}</span>
-                <div id="bar" ?in-range=${inRange}>
+                <div id="bar" ?in-range=${isInTarget}>
                     <div id="indicator" style="left: ${normed * 100}%"></div>
-                    ${target ? html`<div id="target" style="left: ${target[0]*100}%; right: ${(1 - target[1])*100}%"></div>` : ''}
+                    <div id="target" style="left: ${targetMin*100}%; right: ${(1 - targetMax)*100}%"></div>
                 </div>
                 <span class="range">${max.toFixed(2)}</span>
             </div>
