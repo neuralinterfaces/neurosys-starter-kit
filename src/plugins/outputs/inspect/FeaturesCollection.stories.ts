@@ -60,12 +60,26 @@ export const ScoreDisplayWithTarget: Story = {
     },
 };
 
+const total = 1250
+
 export const BandpowersDisplay: Story = {
     args: {  
         bands: {
-            Fp1: { 'delta': 0.2, 'theta': 0.2, 'alpha': 0.3, 'beta': 0.1, 'gamma': 0.1 },
-            Fp2: { 'alpha': 0.3, 'beta': 0.5 },
-            AUX: { 'delta': 0.1, 'theta': 0.2 },
+            Fp1: { 
+                'delta': { value: 0.2 * total, total }, 
+                'theta': { value: 0.2 * total, total }, 
+                'alpha': { value: 0.3 * total, total }, 
+                'beta': { value: 0.1 * total, total }, 
+                'gamma': { value: 0.1 * total, total }
+            },
+            Fp2: {
+                'alpha': { value: 0.3 * total, total },
+                'beta': { value: 0.5 * total, total }
+            },
+            AUX: { 
+                delta: { value: 0.1 * total, total },
+                theta: { value: 0.2 * total, total },
+             },
         }
     },
 };
