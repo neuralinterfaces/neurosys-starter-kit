@@ -93,7 +93,8 @@ export class ScoreComponent extends LitElement {
     const { raw, min, max } = info;
     const target = info.getTarget();
     const isInTarget = info.inTarget()
-    const normed = info.normalize(raw);
+    const normed = info.normalize(raw, false)
+    const indicatorPosition = info.normalize(raw, false)
 
     const range = max - min
     const normedTarget = target && target.map(t => (t - min) / range) // Normalize target
@@ -104,7 +105,7 @@ export class ScoreComponent extends LitElement {
             <div id="visuals">
                 <span class="range">${min.toFixed(2)}</span>
                 <div id="bar" ?in-range=${isInTarget}>
-                    <div id="indicator" style="left: ${normed * 100}%"></div>
+                    <div id="indicator" style="left: ${indicatorPosition * 100}%"></div>
                     <div id="target" style="left: ${targetMin*100}%; right: ${(1 - targetMax)*100}%"></div>
                 </div>
                 <span class="range">${max.toFixed(2)}</span>
